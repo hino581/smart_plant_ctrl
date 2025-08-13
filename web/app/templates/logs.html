@@ -20,28 +20,8 @@
 </head>
 
 <body>
-  <!-- ナビバー -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('index') }}">植物モニター</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link active" href="{{ url_for('list_logs') }}">📂 ログ</a>
-          </li>
-        </ul>
-        <form class="d-flex align-items-center">
-          <label class="form-check-label text-white me-2" for="darkModeSwitch">🌙 ダークモード</label>
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="darkModeSwitch">
-          </div>
-        </form>
-      </div>
-    </div>
-  </nav>
+  <!-- ヘッダー ナビバー -->
+  {% include 'partials/_header.html' %}
 
   <!-- メイン -->
   <div class="container py-4">
@@ -52,7 +32,7 @@
         {% for file in files %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <span>{{ file }}</span>
-            <a href="{{ url_for('view_log', filename=file) }}" class="btn btn-sm btn-outline-primary">📄 開く</a>
+            <a href="{{ url_for('main.view_log', filename=file) }}" class="btn btn-sm btn-outline-primary">📄 開く</a>
           </li>
         {% endfor %}
       </ul>

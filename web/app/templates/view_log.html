@@ -59,22 +59,9 @@
 </head>
 
 <body>
-
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('index') }}">植物モニター</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarMain">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('list_logs') }}">📂 ログ</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin') }}">🛠 管理</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
+  <!-- ヘッダー ナビバー -->
+  {% include 'partials/_header.html' %}
+  
   <div class="container py-4">
     <h1 class="mb-3">📄 {{ filename }}</h1>
 
@@ -109,7 +96,7 @@
       </table>
     </div>
 
-    <a href="{{ url_for('list_logs') }}" class="btn btn-secondary">← ログ一覧に戻る</a>
+    <a href="{{ url_for('main.list_logs') }}" class="btn btn-secondary">← ログ一覧に戻る</a>
   </div>
 
   <script>
