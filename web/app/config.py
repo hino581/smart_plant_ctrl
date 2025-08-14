@@ -1,18 +1,14 @@
 import os
 
 UDP_IP = "0.0.0.0"
-UDP_PORT = int(os.environ.get("SENSOR_UDP_PORT", "12345"))
+SENSOR_SND_UPORT = int(os.environ.get("SENSOR_SND_UPORT", "12345"))
 DISCONNECT_TIMEOUT = 600 + 5
 LOG_DIR = "log"
 CSV_HEADER = ["timestamp","Temp","Hum","Pres","Light","Soil","Bus","Current","Power"]
 
-CFG_UDP_PORT = int(os.environ.get("CFG_UDP_PORT", "12346"))
-CTL_UDP_PORT = int(os.environ.get("CTL_UDP_PORT", "12346"))
+PRV_SND_RCV_UPORT = int(os.environ.get("PRV_SND_RCV_UPORT", "12346"))
 SOFTAP_IP    = os.environ.get("SOFTAP_IP", "192.168.4.1")
 SEND_TIMEOUT = float(os.environ.get("SEND_TIMEOUT", "1.5"))
-
-# UI文言で使っていた未定義名の対策（表示だけの別名・挙動不変）
-CTRL_PORT = CTL_UDP_PORT
 
 # Desired 既定値
 DESIRED_DEFAULTS = {
@@ -25,11 +21,10 @@ DESIRED_DEFAULTS = {
     "pass":    os.environ.get("DESIRED_PASS", "YourPASS"),
     "uaddr":   os.environ.get("DESIRED_UADDR", "192.168.0.10"),
     "uport":   int(os.environ.get("DESIRED_UPORT", "12345")),
-    "key":     os.environ.get("DESIRED_PSK", "plant-psk"),
 }
 
 DESIRED_CSV = os.path.join(LOG_DIR, "desired_config.csv")
 DESIRED_FIELDS = {
     "ssid": str, "pass": str, "uaddr": str, "uport": int,
-    "soil": int, "pump_ms": int, "init_ms": int, "dsw_ms": int, "sleep_s": int, "key": str,
+    "soil": int, "pump_ms": int, "init_ms": int, "dsw_ms": int, "sleep_s": int
 }

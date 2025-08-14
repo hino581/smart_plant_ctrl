@@ -3,7 +3,7 @@ from datetime import datetime
 from threading import Thread
 from typing import Dict
 from app.extensions import socketio
-from app.config import UDP_IP, UDP_PORT, DISCONNECT_TIMEOUT, LOG_DIR, CSV_HEADER
+from app.config import UDP_IP, SENSOR_SND_UPORT, DISCONNECT_TIMEOUT, LOG_DIR, CSV_HEADER
 
 latest_data: Dict[str, float] = {}
 last_udp_time = time.time()
@@ -11,8 +11,8 @@ last_udp_time = time.time()
 def udp_listener():
     global latest_data, last_udp_time
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_IP, UDP_PORT))
-    print(f"[UDP] Listening on {UDP_PORT}...")
+    sock.bind((UDP_IP, SENSOR_SND_UPORT))
+    print(f"[SEN] Listening on {SENSOR_SND_UPORT}...")
     while True:
         data, _ = sock.recvfrom(1024)
         msg = data.decode("utf-8").strip()
@@ -25,7 +25,8 @@ def udp_listener():
                 if v.replace(".", "", 1).replace("-", "", 1).isdigit()
             }
         except Exception as e:
-            print(f"[UDP] Parse error: {e}")
+            print(f"[SEN] Parse error Data: {data}")
+            print(f"[SEN] Parse error: {e}")
 
 def emit_loop():
     disconnected = False

@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <algorithm>
-#include <Preferences.h>     // ★ 追加：NVS初期化に必要
+#include <Preferences.h>
 #include "config.hpp"
 #include "sensors.hpp"
 #include "network.hpp"
@@ -60,10 +60,11 @@ void setup() {
     startProvisionWindowAPSTA(cfg);  // (1分)
   } else {
     // 失敗時は従来どおりフルAPプロビジョニング（1分）
-    startProvisionAP(cfg);
+    //startProvisionAP(cfg);
+    startProvisionWindowAPSTA(cfg);  // (1分)
   }
 
-  delay(cfg.deepSleepWaitMs ? cfg.deepSleepWaitMs : 1000);
+  delay(cfg.deepSleepWaitMs);
   esp_sleep_enable_timer_wakeup((uint64_t)cfg.sleepSec * 1000000ULL);
   esp_deep_sleep_start();
 }

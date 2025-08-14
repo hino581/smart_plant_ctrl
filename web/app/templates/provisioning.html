@@ -1,9 +1,10 @@
+<!-- templates/provisioning.html -->
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
-  <meta charset="UTF-8">
-  <title>📡 プロビジョニング状態</title>
+  <meta charset="utf-8">
+  <title>プロビジョニング | 植物モニター</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -12,172 +13,142 @@
       padding-top: 70px;
     }
 
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    .table thead th {
+      white-space: nowrap;
     }
 
-    .badge-dot {
-      display: inline-block;
-      width: .6rem;
-      height: .6rem;
-      border-radius: 50%;
-      margin-right: .4rem;
+    .form-check-input {
+      transform: scale(1.05);
     }
 
-    .diff-badge {
-      font-size: .8rem;
+    .readonly {
+      background-color: var(--bs-tertiary-bg);
     }
 
-    .table-sticky thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
+    .w-ctl {
+      width: 120px;
+    }
+
+    .w-key {
+      width: 180px;
     }
   </style>
 </head>
 
 <body>
-  <!-- ヘッダー ナビバー -->
   {% include 'partials/_header.html' %}
-
-  <div class="container py-4">
-    <h1 class="mb-3">📡 プロビジョニング状態</h1>
-
-    <div class="card shadow-sm mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-2">サーバ側 Desired 設定</h5>
-        <div class="row g-2 mono">
-          <div class="col-auto"><span class="text-muted">SSID</span>: {{ desired.ssid }}</div>
-          <div class="col-auto"><span class="text-muted">PASS</span>: {{ desired.pass }}</div>
-          <div class="col-auto"><span class="text-muted">UADDR</span>: {{ desired.uaddr }}</div>
-          <div class="col-auto"><span class="text-muted">UPORT</span>: {{ desired.uport }}</div>
-          <div class="w-100"></div>
-          <div class="col-auto"><span class="text-muted">SOIL</span>: {{ desired.soil }}</div>
-          <div class="col-auto"><span class="text-muted">PUMP_MS</span>: {{ desired.pump_ms }}</div>
-          <div class="col-auto"><span class="text-muted">INIT_MS</span>: {{ desired.init_ms }}</div>
-          <div class="col-auto"><span class="text-muted">DSW_MS</span>: {{ desired.dsw_ms }}</div>
-          <div class="col-auto"><span class="text-muted">SLEEP_S</span>: {{ desired.sleep_s }}</div>
-        </div>
-        <div class="mt-2 text-muted">SoftAP 宛: {{ ap_ip }}:{{ ctrl_port }}</div>
-      </div>
+  <div class="container">
+    <div class="d-flex align-items-center mb-3">
+      <h1 class="me-3 mb-0">🛠 プロビジョニング</h1>
+      <span class="text-muted">最終受信：{{ device.last_report_time or "-" }}</span>
     </div>
 
-    <!-- ★ Desired 設定の編集フォーム -->
-    <div class="card shadow-sm mb-4">
+    <!-- デバイス選択 -->
+    <div class="card mb-3">
       <div class="card-body">
-        <h5 class="card-title mb-2">Desired 設定を編集</h5>
-        <form method="post" action="{{ url_for('provisioning.provisioning_update') }}" class="row g-3 mono">
-          <div class="col-md-3">
-            <label class="form-label">SSID</label>
-            <input name="ssid" class="form-control" value="{{ desired.ssid }}">
+        <form class="row gy-2 gx-2 align-items-center" method="get" action="/provisioning">
+          <div class="col-auto"><label class="col-form-label">対象デバイス（最新順）</label></div>
+          <div class="col-auto">
+            <select class="form-select" name="mac" onchange="this.form.submit()">
+              {% set current_mac = device.mac or '-' %}
+              <option value="">（最新を自動選択）</option>
+              {% for d in devices %}
+              {% set mac_str = d.mac or '-' %}
+              <option value="{{ mac_str }}" {% if mac_str==current_mac %}selected{% endif %}>
+                {{ mac_str }}（最終: {{ d.last_report_time or '-' }}）
+              </option>
+              {% endfor %}
+            </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label">PASS</label>
-            <input name="pass" class="form-control" value="{{ desired.pass }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">UADDR</label>
-            <input name="uaddr" class="form-control" value="{{ desired.uaddr }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">UPORT</label>
-            <input name="uport" type="number" class="form-control" value="{{ desired.uport }}">
-          </div>
-          <div class="w-100"></div>
-          <div class="col-md-2">
-            <label class="form-label">SOIL</label>
-            <input name="soil" type="number" class="form-control" value="{{ desired.soil }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">PUMP_MS</label>
-            <input name="pump_ms" type="number" class="form-control" value="{{ desired.pump_ms }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">INIT_MS</label>
-            <input name="init_ms" type="number" class="form-control" value="{{ desired.init_ms }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">DSW_MS</label>
-            <input name="dsw_ms" type="number" class="form-control" value="{{ desired.dsw_ms }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">SLEEP_S</label>
-            <input name="sleep_s" type="number" class="form-control" value="{{ desired.sleep_s }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">PSK(KEY)</label>
-            <input name="key" class="form-control" value="{{ desired.key }}">
-          </div>
-
-          <div class="col-12 d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-primary">💾 保存（CSV更新）</button>
-            <!-- 手動プッシュ（今すぐSoftAPへ送る） -->
-            <form method="post" action="{{ url_for('provisioning.provisioning_push') }}" class="d-inline">
-              <input type="hidden" name="ap_ip" value="{{ ap_ip }}">
-              <button type="submit" class="btn btn-outline-success">📡 いま送る（{{ ap_ip }}:{{ ctrl_port }}）</button>
-            </form>
+          <div class="col-auto text-muted">
+            SoftAP：<code>{{ device.ap_ssid or '-' }}</code> / IP：<code>{{ device.ap_ip or '-' }}</code>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="table-responsive table-sticky">
-      <table class="table table-sm table-bordered align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>MAC</th>
-            <th>最終レポート</th>
-            <th>最終送信</th>
-            <th>送信結果</th>
-            <th>差分</th>
-            <th>レポート詳細</th>
-          </tr>
-        </thead>
-        <tbody class="mono">
-          {% for r in rows %}
-          <tr>
-            <td>{{ r.mac }}</td>
-            <!-- ★ サーバ側で文字列化済みをそのまま表示 -->
-            <td>{{ r.last_report_time }}</td>
-            <!-- ★ 未設定時は '-'、あればそのまま表示（数値でも文字列でもOK） -->
-            <td>{{ r.last_push_time or '-' }}</td>
-            <td>
-              {% if r.push_ok is sameas true %}
-              <span class="badge bg-success"><span class="badge-dot bg-light"></span>OK</span>
-              {% elif r.push_ok is sameas false %}
-              <span class="badge bg-danger"><span class="badge-dot bg-light"></span>NG</span>
-              {% else %}
-              <span class="badge bg-secondary">-</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if r.diff and r.diff|length > 0 %}
-              {% for k, v in r.diff.items() %}
-              <span class="badge bg-warning text-dark diff-badge">{{ k }}: {{ v.reported }}→{{ v.desired }}</span>
-              {% endfor %}
-              {% else %}
-              <span class="text-muted">差分なし</span>
-              {% endif %}
-            </td>
-            <td>
-              <details>
-                <summary>開く</summary>
-                <div>ssid={{ r.ssid }}, uaddr={{ r.uaddr }}, uport={{ r.udpPort }}, soil={{ r.soil }}, pump_ms={{
-                  r.pump_ms }}, init_ms={{ r.init_ms }}, dsw_ms={{ r.dsw_ms }}, sleep_s={{ r.sleep_s }}</div>
-              </details>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="6" class="text-center text-muted">まだレポートがありません。</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- 右にしかない項目（テーブル下に記載） -->
+    <hr class="my-4">
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <label class="form-label">MAC/IP（識別）</label>
+        <input class="form-control readonly" type="text" value="{{ device.mac or '-' }}" readonly>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label">受信時刻</label>
+        <input class="form-control readonly" type="text" value="{{ device.last_report_time or '-' }}" readonly>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label">ap_ssid</label>
+        <input class="form-control readonly" type="text" value="{{ device.ap_ssid or '-' }}" readonly>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label">ap_ip</label>
+        <input class="form-control readonly" type="text" value="{{ device.ap_ip or '-' }}" readonly>
+      </div>
     </div>
+    <hr class="my-4">
 
-    <div class="text-end">
-      <a href="{{ url_for('provisioning.provisioning') }}" class="btn btn-outline-secondary">🔄 リロード</a>
+    <!-- 比較テーブル（左＝保存する値入力／右＝受信値readonly） -->
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <strong>設定値／受信値</strong>
+      </div>
+      <div class="card-body">
+        <form method="post" action="/provisioning/save-selected">
+          <!-- 送信先 ap_ip 表示（保存には使わないが参照のため残す） -->
+          <input type="hidden" name="ap_ip" value="{{ device.ap_ip or '' }}" readonly>
+
+          {% set rows = [
+          ("ssid", "WiFi SSID", desired.get("ssid",""), device.ssid or "-"),
+          ("pass", "WiFi PASS", desired.get("pass",""), device.pass if device.pass is defined else "-"),
+          ("uaddr", "UDP Addr", desired.get("uaddr",""), device.uaddr or "-"),
+          ("uport", "UDP Port", desired.get("uport",""), device.uport or "-"),
+          ("soil", "Soil", desired.get("soil",""), device.soil or "-"),
+          ("pump_ms", "Pump ms", desired.get("pump_ms",""),device.pump_ms or "-"),
+          ("init_ms", "Init ms", desired.get("init_ms",""),device.init_ms or "-"),
+          ("dsw_ms", "DS Wait ms", desired.get("dsw_ms",""), device.dsw_ms or "-"),
+          ("sleep_s", "Sleep s", desired.get("sleep_s",""),device.sleep_s or "-"),
+          ] %}
+
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th class="w-ctl">保存</th>
+                  <th class="w-key">キー</th>
+                  <th>設定値</th>
+                  <th>受信値</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for key, label, leftVal, rightVal in rows %}
+                <tr>
+                  <td>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="send_{{ key }}" id="send_{{ key }}"
+                        value="1">
+                      <label class="form-check-label" for="send_{{ key }}"></label>
+                    </div>
+                  </td>
+                  <td><span class="text-muted">{{ key }}</span><br><strong>{{ label }}</strong></td>
+                  <td>
+                    <input class="form-control"
+                      type="{{ 'password' if key=='pass' else ('number' if key in ['uport','soil','pump_ms','init_ms','dsw_ms','sleep_s'] else 'text') }}"
+                      name="{{ key }}" value="{{ leftVal }}">
+                  </td>
+                  <td><input class="form-control readonly" type="text" value="{{ rightVal }}" readonly></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">チェックした項目を保存</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </body>

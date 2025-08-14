@@ -23,7 +23,7 @@
 #define WIFI_CONNECT_TIMEOUT_MS 10000
 
 // ===== プロビジョン =====
-#define PRV_SND_RCV_PORT 12346
+#define PRV_SND_RCV_UPORT 12346
 #define PROVISION_WINDOW_MS 60000UL // 1分
 
 // ===== センサーデータ構造体 =====
@@ -44,7 +44,6 @@ struct AppConfig {
   char ssid[32];
   char pass[64];
   char udpAddr[16];
-  char psk[32];
 };
 
 void loadConfig(AppConfig &cfg);

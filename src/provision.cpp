@@ -21,6 +21,7 @@ static bool findStr(const char* json, const char* key, char* out, size_t cap) {
   v.toCharArray(out, cap);
   return true;
 }
+
 static bool findInt(const char* json, const char* key, int* out) {
   String s(json);
   int i = s.indexOf(String("\"")+key+"\"");
@@ -30,89 +31,26 @@ static bool findInt(const char* json, const char* key, int* out) {
   return true;
 }
 
-static bool handleProvisionPacket(const char* buf, AppConfig& cfg, WiFiUDP& udp) {
-  // PSKチェック:contentReference[oaicite:4]{index=4}
-  char inKey[32] = "";
-  findStr(buf, "key", inKey, sizeof(inKey));
-  if (std::strcmp(inKey, cfg.psk) != 0) {
-    const char* nack = "{\"ack\":0,\"err\":\"psk\"}";
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    udp.write(reinterpret_cast<const uint8_t*>(nack), std::strlen(nack));
-    udp.endPacket();
-    return false; // 未処理
-  }
-
-  bool needReboot = false; int v;
-  if (findInt(buf,"soil",&v))     cfg.soilDryThreshold = v;
-  if (findInt(buf,"pump_ms",&v))  cfg.pumpOnMs = v;
-  if (findInt(buf,"init_ms",&v))  cfg.initWaitMs = v;
-  if (findInt(buf,"dsw_ms",&v))   cfg.deepSleepWaitMs = v;
-  if (findInt(buf,"sleep_s",&v))  cfg.sleepSec = static_cast<uint32_t>(v);
-
-  char s[32], p[64], a[16];
-  if (findStr(buf,"ssid", s, sizeof(s))) { std::strncpy(cfg.ssid, s, sizeof(cfg.ssid)); needReboot=true; }
-  if (findStr(buf,"pass", p, sizeof(p))) { std::strncpy(cfg.pass, p, sizeof(cfg.pass)); needReboot=true; }
-  if (findStr(buf,"uaddr",a, sizeof(a))) { std::strncpy(cfg.udpAddr, a, sizeof(cfg.udpAddr)); }
-  if (findInt(buf,"uport",&v))           { cfg.udpPort = static_cast<uint16_t>(v); }
-
-  saveConfig(cfg); // NVS保存:contentReference[oaicite:5]{index=5}
-
-  // ACK（適用後の現状値を返す）:contentReference[oaicite:6]{index=6}
-  char ack[256];
-  std::snprintf(ack, sizeof(ack),
-    "{\"ack\":1,\"ssid\":\"%s\",\"uaddr\":\"%s\",\"uport\":%u,"
-    "\"soil\":%u,\"pump_ms\":%u,\"init_ms\":%u,\"dsw_ms\":%u,\"sleep_s\":%u}",
-    cfg.ssid, cfg.udpAddr, cfg.udpPort,
-    cfg.soilDryThreshold, cfg.pumpOnMs, cfg.initWaitMs, cfg.deepSleepWaitMs, cfg.sleepSec);
-  udp.beginPacket(udp.remoteIP(), udp.remotePort());
-  udp.write(reinterpret_cast<const uint8_t*>(ack), std::strlen(ack));
-  udp.endPacket();
-
-  if (needReboot) { delay(300); WiFi.softAPdisconnect(true); ESP.restart(); }
-  return true; // 処理成功
-}
-
-// ====== 起動時のフルAPプロビジョニング（1分）を共通ハンドラで書き換え:contentReference[oaicite:7]{index=7} ======
-void startProvisionAP(AppConfig& cfg) {
-  WiFi.mode(WIFI_AP);
-  uint8_t m[6];
-  esp_read_mac(m, ESP_MAC_WIFI_SOFTAP);
-  char apSsid[32]; std::snprintf(apSsid, sizeof(apSsid), "PlantMon-%02X%02X", m[4], m[5]);
-  WiFi.softAP(apSsid, "plantmon");
-  WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-  ctrlUdp.begin((uint16_t) PRV_SND_RCV_PORT);
-
-  uint32_t t0 = millis();
-  while (millis()-t0 < (uint32_t) PROVISION_WINDOW_MS) {
-    int sz = ctrlUdp.parsePacket();
-    if (sz > 0) {
-      char buf[384]; int n = ctrlUdp.read(buf, sizeof(buf)-1); buf[n]=0;
-      if (handleProvisionPacket(buf, cfg, ctrlUdp)) {
-        // ★1回適用したら即クローズ
-        break;
-      }
-    }
-    delay(10);
-  }
-  ctrlUdp.stop();
-  WiFi.softAPdisconnect(true);
-}
-
 void startProvisionWindowAPSTA(AppConfig& cfg) {
     // 1. AP SSID生成
-    uint8_t m[6];
-    esp_read_mac(m, ESP_MAC_WIFI_SOFTAP);
+    uint8_t macAddr[6];
+    esp_read_mac(macAddr, ESP_MAC_WIFI_SOFTAP);
     char apSsid[32];
-    std::snprintf(apSsid, sizeof(apSsid), "PlantMon-%02X%02X", m[4], m[5]);
+    std::snprintf(apSsid, sizeof(apSsid), "PlantMon-%02X%02X", macAddr[4], macAddr[5]);
     const char* apPass = "plantmon";
+    char macStr[18];
+    std::snprintf(macStr, sizeof(macStr),
+            "%02X:%02X:%02X:%02X:%02X:%02X",
+            macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
 
     // 2. JSONで現在設定＋AP情報を送信（STA経由）
     char announce[512];
     std::snprintf(announce, sizeof(announce),
-        "{\"ap_ssid\":\"%s\",\"ap_pass\":\"%s\",\"ap_ip\":\"%s\","
+        "{\"mac\":\"%s\",\"ap_ssid\":\"%s\",\"ap_pass\":\"%s\",\"ap_ip\":\"%s\","
         "\"soil\":%u,\"pump_ms\":%u,\"init_ms\":%u,"
         "\"dsw_ms\":%u,\"sleep_s\":%u,"
-        "\"uaddr\":\"%s\",\"uport\":%u}",
+        "\"ssid\":\"%s\",\"pass\":\"%s\",\"uaddr\":\"%s\",\"uport\":%u}",
+        macStr,
         apSsid,
         (apPass && apPass[0]) ? apPass : "",
         WiFi.localIP().toString().c_str(), // STA IPで送信
@@ -121,13 +59,15 @@ void startProvisionWindowAPSTA(AppConfig& cfg) {
         cfg.initWaitMs,
         cfg.deepSleepWaitMs,
         cfg.sleepSec,
+        cfg.ssid,
+        cfg.pass,
         cfg.udpAddr,
         cfg.udpPort
     );
     Serial.printf("[PROV] announce(JSON) -> %s:%u\n%s\n",
-                  cfg.udpAddr, (unsigned)PRV_SND_RCV_PORT, announce);
+                  cfg.udpAddr, (unsigned)PRV_SND_RCV_UPORT, announce);
 
-    if (!sendUDP(cfg.udpAddr, PRV_SND_RCV_PORT, announce)) {
+    if (!sendUDP(cfg.udpAddr, PRV_SND_RCV_UPORT, announce)) {
         Serial.println("[PROV] sendUDP() failed");
         return;
     }
@@ -138,7 +78,7 @@ void startProvisionWindowAPSTA(AppConfig& cfg) {
     WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
 
     // 4. サーバからの設定受信待ち
-    ctrlUdp.begin((uint16_t)PRV_SND_RCV_PORT);
+    ctrlUdp.begin((uint16_t)PRV_SND_RCV_UPORT);
     uint32_t t0 = millis();
     while (millis() - t0 < (uint32_t)PROVISION_WINDOW_MS) {
         int sz = ctrlUdp.parsePacket();

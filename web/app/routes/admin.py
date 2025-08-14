@@ -2,7 +2,7 @@ import os, csv, shutil, tempfile
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from app.config import LOG_DIR
-from app.utils.timeparse import parse_iso as _parse_iso
+from app.utils.parse import time_parse as _time_parse
 
 bp = Blueprint("admin", __name__)
 
@@ -46,8 +46,8 @@ def delete_range():
         flash("必須項目が未入力です。", "warning"); return redirect(url_for("admin.admin"))
 
     try:
-        start_dt = _parse_iso(start_s)
-        end_dt   = _parse_iso(end_s)
+        start_dt = _time_parse(start_s)
+        end_dt   = _time_parse(end_s)
         if end_dt < start_dt: raise ValueError("終了時刻が開始時刻より前です。")
     except Exception as e:
         flash(f"時刻の形式が不正です: {e}", "danger"); return redirect(url_for("admin.admin"))

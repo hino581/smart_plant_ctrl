@@ -5,7 +5,6 @@
 const char* DEF_WIFI_SSID = "Fight Club";
 const char* DEF_WIFI_PASS = "soap1999";
 const char* DEF_UDP_ADDR  ="192.168.0.165";
-const char* DEF_PSK  ="plant-psk";
 
 static Preferences prefs;
 
@@ -29,15 +28,12 @@ void loadConfig(AppConfig& cfg) {
   String s = prefs.getString("ssid",   DEF_WIFI_SSID);
   String p = prefs.getString("pass",   DEF_WIFI_PASS);
   String a = prefs.getString("uaddr",  DEF_UDP_ADDR);
-  String k = prefs.getString("psk",    DEF_PSK);
   Serial.printf("ssid : %s\n", s.c_str());
   Serial.printf("pass : %s\n", p.c_str());
   Serial.printf("uaddr: %s\n", a.c_str());
-  Serial.printf("psk  : %s\n", k.c_str());
   s.toCharArray(cfg.ssid, sizeof(cfg.ssid));
   p.toCharArray(cfg.pass, sizeof(cfg.pass));
   a.toCharArray(cfg.udpAddr, sizeof(cfg.udpAddr));
-  k.toCharArray(cfg.psk, sizeof(cfg.psk));
   prefs.end();
 }
 
@@ -52,6 +48,5 @@ void saveConfig(const AppConfig& cfg) {
   prefs.putString("pass",  cfg.pass);
   prefs.putString("uaddr", cfg.udpAddr);
   prefs.putUShort("uport", cfg.udpPort);
-  prefs.putString("psk",   cfg.psk);
   prefs.end();
 }

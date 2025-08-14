@@ -12,5 +12,5 @@ app = create_app()
 if __name__ == "__main__":
     load_desired_from_csv()               # Desired CSVのロード（元処理踏襲）
     start_sensor_threads()                # UDPリスナ & emit_loop 起動
-    start_provisioning_listener()         # CFGリスナ起動
+    start_provisioning_listener()         # PRVリスナ起動
     socketio.run(app, host="0.0.0.0", port=5000)
