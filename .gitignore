@@ -6,3 +6,4 @@
 tmp/
 web/log/
 *.pyc
+/.vscode/settings.json
